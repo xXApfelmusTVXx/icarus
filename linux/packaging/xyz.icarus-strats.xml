@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The file types Icarus opens. *.ica is also Citrix's
+     application/x-ica in shared-mime-info; the higher weight makes an
+     Icarus strategy win. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-icarus-strategy">
+    <comment>Icarus strategy</comment>
+    <glob pattern="*.ica" weight="60"/>
+  </mime-type>
+  <mime-type type="application/x-valorant-replay">
+    <comment>Valorant replay</comment>
+    <glob pattern="*.vrf"/>
+  </mime-type>
+</mime-info>

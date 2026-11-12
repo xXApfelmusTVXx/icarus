@@ -571,20 +571,27 @@ jobs:
           path: ${{ runner.temp }}/gauntlet-report.json
           if-no-files-found: ignore
 
+  # Builds the Linux client and packs it as an AppImage anyone can download
+  # from the run and try.
   linux-build:
     needs: changes
     if: needs.changes.outputs.desktop == 'true'
-    runs-on: ubuntu-latest
+    # The oldest supported runner: an AppImage needs at least the glibc it was
+    # built against, and 22.04's (2.35) reaches Debian 12 and Mint 21 as well.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Release Source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_SOURCE_SHA }}
 
+      # libstdc++-12-dev: 22.04's clang builds against the newest GCC it finds
+      # and needs that one's headers. desktop-file-utils lets appimagetool
+      # check the desktop entry.
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev desktop-file-utils
 
       - uses: ./.github/actions/setup-flutter
 
@@ -596,6 +603,16 @@ jobs:
 
       - name: Build Linux Client
         run: fvm flutter build linux --no-tree-shake-icons --dart-define=ICARUS_CLOUD_ENVIRONMENT=development
+
+      - name: Pack AppImage
+        run: bash scripts/package_linux_appimage.sh
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: icarus-linux-appimage-${{ env.RELEASE_SOURCE_SHA }}
+          path: build/appimage/Icarus-*-x86_64.AppImage
+          if-no-files-found: error
 
   # Builds the Windows installer the way a release does and upgrades the last
   # public release to it, then rolls back.
