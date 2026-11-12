@@ -4656,7 +4656,11 @@
   },
   "updateMsgDownload": "Download Update",
   "@updateMsgDownload": {
-    "description": "Windows desktop updater button that downloads the update."
+    "description": "Button that downloads the update: in the Windows desktop updater, and in the update dialog on Linux, where it downloads the new AppImage."
+  },
+  "updateMsgLinuxDownloadHint": "Your browser downloads the new AppImage. Allow it to run as a program, start it, and use it instead of this one from now on. Your library stays where it is.",
+  "@updateMsgLinuxDownloadHint": {
+    "description": "Last line of the update dialog on Linux, where the update button (updateMsgDownload) downloads a new AppImage file in the browser instead of installing anything. The user has to mark the downloaded file as executable and start it. The library is the user's saved strategies, which the new file keeps."
   },
   "updateMsgRestartToUpdate": "Restart to update",
   "@updateMsgRestartToUpdate": {

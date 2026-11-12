@@ -21,6 +21,7 @@ class UpdateCheckResult {
     this.features,
     this.errorCode,
     this.message,
+    this.downloadUrl,
   });
 
   final bool isSupported;
@@ -32,6 +33,10 @@ class UpdateCheckResult {
   final List<String>? features;
   final int? errorCode;
   final String? message;
+
+  /// The file the update dialog downloads instead of opening a store. Set
+  /// for Linux, where the update is a new AppImage.
+  final Uri? downloadUrl;
 }
 
 class UpdateChecker {
@@ -42,10 +47,23 @@ class UpdateChecker {
   static const String _windowsStoreSchemeUrl =
       'ms-windows-store://pdp/?productid=9PBWHHZRQFW6';
 
+  /// Linux builds update from the GitHub Releases that Release Desktop
+  /// attaches the AppImage to (docs/release_process.md, "Linux AppImage").
+  static const String linuxReleasesUrl =
+      'https://api.github.com/repos/SunkenInTime/icarus/releases?per_page=20';
+
+  /// The AppImage's name in every release; build_linux_release.ps1 gives it.
+  static const String linuxAppImageAssetName = 'icarus-x86_64.AppImage';
+
+  static final RegExp _releaseTag =
+      RegExp(r'^desktop-(stable|prerelease)-v(\d+\.\d+\.\d+)\+(\d+)$');
+
   @visibleForTesting
   static Future<Map<String, dynamic>?> Function()? fetchVersionInfoOverride;
   @visibleForTesting
   static Future<Map<String, dynamic>> Function()? windowsStoreCheckOverride;
+  @visibleForTesting
+  static Future<Object?> Function()? fetchLinuxReleasesOverride;
 
   /// The web build is always the deployed version; it has no updater, so it
   /// never fetches the desktop version file.
@@ -54,17 +72,6 @@ class UpdateChecker {
     isUpdateAvailable: false,
     source: 'web',
     message: 'The web build updates itself on reload.',
-  );
-
-  /// Linux builds have no update feed yet, so they never fetch the desktop
-  /// version file: it predates them, and its update button opens the
-  /// Microsoft Store. What a Linux build checks waits on how Linux builds
-  /// are released.
-  static const _linuxResult = UpdateCheckResult(
-    isSupported: false,
-    isUpdateAvailable: false,
-    source: 'linux',
-    message: 'Linux builds have no update feed yet.',
   );
 
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
@@ -95,7 +102,7 @@ class UpdateChecker {
     final bool isWindows = isWindowsOverride ??
         ((!isWeb && Platform.isWindows) || windowsStoreCheckOverride != null);
     if (_isLinux(isWindows: isWindows, override: isLinuxOverride)) {
-      return _linuxResult;
+      return _checkLinuxReleaseSignal();
     }
 
     if (isWindows) {
@@ -127,7 +134,7 @@ class UpdateChecker {
     final bool isWindows = isWindowsOverride ??
         ((!isWeb && Platform.isWindows) || windowsStoreCheckOverride != null);
     if (_isLinux(isWindows: isWindows, override: isLinuxOverride)) {
-      return _linuxResult;
+      return _checkLinuxReleaseSignal();
     }
 
     if (!isWindows) {
@@ -244,6 +251,120 @@ class UpdateChecker {
     );
   }
 
+  static Future<UpdateCheckResult> _checkLinuxReleaseSignal() async {
+    final releases = await _fetchLinuxReleases();
+    if (releases == null) {
+      return const UpdateCheckResult(
+        isSupported: false,
+        isUpdateAvailable: false,
+        source: 'linux',
+        message: 'Linux releases unavailable.',
+      );
+    }
+    return linuxUpdateFromReleases(
+      releases,
+      currentVersionNumber: appVersionNumber,
+      channel: kResolvedUpdateChannel,
+    );
+  }
+
+  static Future<Object?> _fetchLinuxReleases() async {
+    final fetchOverride = fetchLinuxReleasesOverride;
+    if (fetchOverride != null) return fetchOverride();
+
+    try {
+      final response = await http.get(
+        Uri.parse(linuxReleasesUrl),
+        headers: const {'Accept': 'application/vnd.github+json'},
+      );
+      if (response.statusCode != 200) {
+        debugPrint('Failed to load Linux releases: ${response.statusCode}');
+        return null;
+      }
+      return json.decode(response.body);
+    } catch (e) {
+      debugPrint('Error fetching Linux releases: $e');
+      return null;
+    }
+  }
+
+  /// The newest published release this Linux build can update to: one with
+  /// the AppImage attached, on the build's channel. A stable build takes
+  /// stable releases only; a prerelease build takes both. Releases from
+  /// before Linux shipped carry no AppImage and are never offered.
+  @visibleForTesting
+  static UpdateCheckResult linuxUpdateFromReleases(
+    Object? releases, {
+    required int currentVersionNumber,
+    required String channel,
+  }) {
+    if (releases is! List) {
+      return const UpdateCheckResult(
+        isSupported: false,
+        isUpdateAvailable: false,
+        source: 'linux',
+        message: 'Unexpected GitHub releases payload.',
+      );
+    }
+
+    Map<dynamic, dynamic>? newest;
+    int newestBuild = -1;
+    Uri? newestDownload;
+    String? newestVersion;
+    for (final release in releases.whereType<Map<dynamic, dynamic>>()) {
+      if (release['draft'] == true) continue;
+      final tag = _releaseTag.firstMatch('${release['tag_name']}');
+      if (tag == null) continue;
+      final isStable = tag.group(1) == 'stable' && release['prerelease'] != true;
+      if (channel == 'stable' && !isStable) continue;
+      final download = _linuxAppImageUrl(release['assets']);
+      if (download == null) continue;
+      final build = int.parse(tag.group(3)!);
+      if (build <= newestBuild) continue;
+      newest = release;
+      newestBuild = build;
+      newestDownload = download;
+      newestVersion = tag.group(2);
+    }
+
+    if (newest == null) {
+      return const UpdateCheckResult(
+        isSupported: true,
+        isUpdateAvailable: false,
+        source: 'linux',
+      );
+    }
+    final title = '${newest['name'] ?? ''}'.trim();
+    return UpdateCheckResult(
+      isSupported: true,
+      isUpdateAvailable: newestBuild > currentVersionNumber,
+      source: 'linux',
+      remoteVersion: newestVersion,
+      updateTitle: title.isEmpty ? null : title,
+      // The release script writes the notes with a byte order mark and
+      // Windows line ends.
+      releaseNotes: '${newest['body'] ?? ''}'
+          .replaceAll('﻿', '')
+          .replaceAll('\r', '')
+          .trim(),
+      downloadUrl: newestDownload,
+    );
+  }
+
+  /// The AppImage's download link, only from GitHub itself: the dialog opens
+  /// it in the browser.
+  static Uri? _linuxAppImageUrl(Object? assets) {
+    if (assets is! List) return null;
+    for (final asset in assets.whereType<Map<dynamic, dynamic>>()) {
+      if (asset['name'] != linuxAppImageAssetName) continue;
+      final url = Uri.tryParse('${asset['browser_download_url']}');
+      if (url != null && url.scheme == 'https' && url.host == 'github.com') {
+        return url;
+      }
+    }
+    return null;
+  }
+
   static void showUpdateDialog(BuildContext context, UpdateCheckResult result) {
     final l10n = context.l10n;
     final String remoteVersion = result.remoteVersion ?? Settings.versionName;
@@ -254,6 +375,7 @@ class UpdateChecker {
     final String releaseNotes =
         result.releaseNotes ?? l10n.serviceMsgStoreUpdateDefaultNotes;
     final List<String> features = result.features ?? const <String>[];
+    final Uri? downloadUrl = result.downloadUrl;
 
     showDialog(
       context: context,
@@ -271,6 +393,8 @@ class UpdateChecker {
                 TextSpan(
                   text: features.map((feature) => '- $feature').join('\n'),
                 ),
+              if (downloadUrl != null)
+                TextSpan(text: '\n${l10n.updateMsgLinuxDownloadHint}'),
             ],
           ),
         ),
@@ -283,15 +407,20 @@ class UpdateChecker {
           ),
           TextButton(
             onPressed: () async {
-              final Uri storeUri = (result.source == 'windows_store')
-                  ? Uri.parse(_windowsStoreSchemeUrl)
-                  : Settings.windowsStoreLink;
-              await launchUrl(storeUri);
+              final Uri updateUri = downloadUrl ??
+                  ((result.source == 'windows_store')
+                      ? Uri.parse(_windowsStoreSchemeUrl)
+                      : Settings.windowsStoreLink);
+              await launchUrl(updateUri);
               if (!context.mounted) return;
 
               Navigator.of(context).pop();
             },
-            child: Text(l10n.serviceMsgStoreUpdateNow),
+            child: Text(
+              downloadUrl != null
+                  ? l10n.updateMsgDownload
+                  : l10n.serviceMsgStoreUpdateNow,
+            ),
           ),
         ],
       ),
