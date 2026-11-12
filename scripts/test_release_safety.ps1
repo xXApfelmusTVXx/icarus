@@ -163,11 +163,17 @@ Assert-TextAppearsBefore -Text $desktopWorkflow -First "Run Release Preflight" -
 if ($webWorkflow -match '(?m)^\s+push:') {
     throw "A push must not deploy the web build. Web ships from Release Desktop."
 }
-if ($desktopWorkflow -notmatch '(?m)^  publish:\s*\r?\n\s+needs:\s*\[build, web\]') {
-    throw "Desktop must publish after the web deploy."
+if ($desktopWorkflow -notmatch '(?m)^  publish:\s*\r?\n\s+needs:\s*\[build, web, linux\]') {
+    throw "Desktop must publish after the web deploy and the Linux build."
 }
 if ($desktopWorkflow -notmatch "needs\.web\.result == 'success'") {
     throw "Desktop must only publish on stable after the web deploy succeeded."
+}
+# Nothing goes public until the Linux AppImage built: web waits for it, and
+# publish refuses to run without it.
+if ($desktopWorkflow -notmatch '(?m)^  web:\s*\r?\n\s+needs:\s*\[build, linux\]' -or
+    $desktopWorkflow -notmatch "needs\.linux\.result == 'success' && inputs\.publish_pages") {
+    throw "Web and desktop must only go public after the Linux build succeeded."
 }
 Assert-TextAppearsBefore -Text $desktopWorkflow -First "Upload Files To Publish" -Second "Commit Version And Metadata Changes"
 if ($desktopWorkflow -notmatch 'production-approval:[\s\S]*environment:\s*Production' -or

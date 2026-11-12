@@ -5,6 +5,9 @@ This project has two Windows release channels:
 - Direct desktop installer: updates in-app with `desktop_updater`
 - Microsoft Store: updates through the Store
 
+A direct desktop release also carries the Linux AppImage, in the same GitHub
+Release (see "Linux AppImage").
+
 Keep them separate. Run the workflow for the channel you actually want to publish.
 
 ## Versioning
@@ -202,19 +205,25 @@ button. It runs, in order:
 1. `build`: build, sign, and run the upgrade and rollback test. Upload the files
    to publish, then push the version commit. Everything that tends to fail comes
    first, and nothing is public until this job passes.
-2. `web / server`: `Deploy Server`, from the tip of `main`. This changes nothing
+2. `linux`: the Linux AppImage, built on Ubuntu 22.04 from the version commit.
+   Web and `publish` wait for it, so nothing is public until both platforms
+   built.
+3. `web / server`: `Deploy Server`, from the tip of `main`. This changes nothing
    unless the deploy on merge failed.
-3. `web / web`: the web build from the version commit, deployed to Pages.
-4. `publish`: the GitHub Release and installer, then the updater manifest. This
-   job starts as soon as a Windows runner is free after web goes live, and takes
-   about two minutes, plus however long GitHub Pages takes to serve the manifest.
+4. `web / web`: the web build from the version commit, deployed to Pages.
+5. `publish`: the GitHub Release with the installer and the AppImage, then the
+   updater manifest. This job starts as soon as a Windows runner is free after
+   web goes live, and takes about two minutes, plus however long GitHub Pages
+   takes to serve the manifest.
 
 Web goes first because it is the easier one to roll back, and desktop reaches
 users through the update feed. The version commit is pushed with `GITHUB_TOKEN`,
 so it starts no workflow.
 
 `channel=prerelease` and `publish_pages=false` never touch web. A
-`publish_pages=false` run stops after `build` with no version commit.
+`publish_pages=false` run stops after `build` and `linux` with no version commit.
+`linux` then builds the version of the commit the run started from, so its
+AppImage is for inspection only.
 
 ### When a release fails
 
@@ -234,6 +243,7 @@ and web won't refuse.
 | --- | --- | --- |
 | `build`, before the version commit | Nothing changed | Fix it and start a new run. |
 | Version commit push (`main` moved during the build) | Nothing changed | Start a new run. |
+| `linux` | Nothing changed. `main` has the version commit. | `Re-run failed jobs`. To abandon the run, do nothing: the next release skips this version number. |
 | `web / server`, or `web / web` | Usually nothing changed, except any server deploy that finished. `main` has the version commit. If the job failed after the Pages upload, web may be new. | Check `https://beta.icarusstrats.com/version.json`, then `Re-run failed jobs`. To abandon a run whose web never went live, do nothing: the next release skips this version number. If web did go live, treat it as the next row. |
 | `publish`, before the installer went public | New web, old desktop | `Re-run failed jobs`. If that can't work, start a new run with `version_bump=none`: it rebuilds from the tip of `main`, keeps the version, and redeploys web so both match. |
 | `publish`, after the installer went public (the manifest push failed) | New web, new installer download, but no update offered | `Re-run failed jobs` only. A new run with `version_bump=none` is refused at the start, because a rebuild can't match a public installer's bytes. |
@@ -261,9 +271,10 @@ also ships the web beta.
    - `publish_pages`: `true`
 5. Wait for the workflow to finish.
 6. Verify the desktop installer artifact was uploaded.
-7. Verify the updater manifest and GitHub Release installer are published:
+7. Verify the updater manifest, the GitHub Release installer and the AppImage are published:
    - `https://sunkenintime.github.io/icarus/updates/windows/stable/app-archive.json`
    - `https://github.com/SunkenInTime/icarus/releases/latest/download/icarus-setup.exe`
+   - `https://github.com/SunkenInTime/icarus/releases/latest/download/icarus-x86_64.AppImage`
 8. Open the published `app-archive.json` and confirm it contains the expected version and notes.
 9. Open the stable installer URL and confirm it downloads the current desktop installer.
 10. Open `https://beta.icarusstrats.com/version.json` and confirm it reports the same version.
@@ -286,9 +297,10 @@ Signed releases run from `main`, matching the Azure federated credential.
    - `mandatory`: `false` unless you want to force the update
    - `publish_pages`: `true`
 7. Wait for the workflow to finish.
-8. Verify GitHub Pages published the updater and a GitHub prerelease contains the installer:
+8. Verify GitHub Pages published the updater and a GitHub prerelease contains the installer and the AppImage:
    - `https://sunkenintime.github.io/icarus/updates/windows/prerelease/app-archive.json`
    - `https://github.com/SunkenInTime/icarus/releases/download/desktop-prerelease-v<VERSION+BUILD>/icarus-setup.exe`
+   - `https://github.com/SunkenInTime/icarus/releases/download/desktop-prerelease-v<VERSION+BUILD>/icarus-x86_64.AppImage`
 9. Install an older prerelease desktop build on a test machine and confirm:
    - update prompt appears
    - update downloads fully
@@ -327,6 +339,20 @@ Use this when you want to publish the Microsoft Store channel.
   - Run `Release Store` only.
 - Both channels on the same version:
   - Use the same app version and matching metadata, then run both workflows.
+
+## Linux AppImage
+
+- `scripts/build_linux_release.ps1` builds it with the same cloud configuration
+  and analytics settings as the Windows build, then packs it with
+  `scripts/package_linux_appimage.sh`. It needs Linux and PowerShell 7, which
+  GitHub's Ubuntu runners have. Locally: `pwsh scripts/build_linux_release.ps1 -Channel prerelease`.
+- It is built on Ubuntu 22.04, so it runs on any distribution with glibc 2.34
+  or newer.
+- Every release names it `icarus-x86_64.AppImage`, like `icarus-setup.exe`, so
+  `releases/latest/download/icarus-x86_64.AppImage` always points at the newest
+  stable one.
+- `publish_installer_release.ps1` refuses to create a release without it, and
+  uploads it together with the installer before the release goes public.
 
 ## Notes
 
