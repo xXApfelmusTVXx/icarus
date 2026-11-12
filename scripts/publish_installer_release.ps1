@@ -52,6 +52,12 @@ if ($existing.Count -gt 0 -and -not $existing[0].isDraft) {
     }
 }
 $draftExists = $existing.Count -gt 0
+# Built by release-desktop.yml's linux job (scripts/build_linux_release.ps1).
+# A new release goes public with both platforms or not at all.
+$appImage = Join-Path $repoRoot "release/out/linux/$($version.FullVersion)/icarus-x86_64.AppImage"
+if (-not (Test-Path -LiteralPath $appImage -PathType Leaf)) {
+    throw "Linux AppImage not found at $appImage. Download the linux job's artifact before publishing."
+}
 $notesFile = Join-Path ([IO.Path]::GetTempPath()) ("icarus-release-notes-" + [guid]::NewGuid() + '.md')
 try {
     @($metadata.changes | ForEach-Object { '- ' + $_.message }) | Set-Content -LiteralPath $notesFile -Encoding UTF8
@@ -64,7 +70,7 @@ try {
         )
     }
     Invoke-RepoCommand -WorkingDirectory $repoRoot -Command 'gh' -Arguments @(
-        'release', 'upload', $tag, $installer, '--repo', $Repository, '--clobber'
+        'release', 'upload', $tag, $installer, $appImage, '--repo', $Repository, '--clobber'
     )
     $publishArgs = @('release', 'edit', $tag, '--repo', $Repository, '--draft=false')
     if ($Channel -eq 'prerelease') { $publishArgs += @('--prerelease', '--latest=false') }

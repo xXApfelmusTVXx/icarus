@@ -135,6 +135,31 @@ try {
     Remove-Variable releaseTestRemoteSource -Scope Global
     Remove-Variable releaseTestList -Scope Global
     Write-Host 'Release retry passed: identical signed asset accepted; different signed asset and a superseded release rejected without modifying the public release.'
+
+    # A new release goes public with the Linux AppImage beside the installer.
+    # Without the AppImage nothing is created at all.
+    $global:releaseTestCalls = [System.Collections.Generic.List[string]]::new()
+    function gh {
+        $global:LASTEXITCODE = 0
+        if ($args[0] -eq 'release' -and $args[1] -eq 'list') { return '[]' }
+        $global:releaseTestCalls.Add($args -join ' ')
+    }
+    Assert-Rejected { & (Join-Path $scripts 'publish_installer_release.ps1') } 'Linux AppImage not found'
+    if ($global:releaseTestCalls.Count -gt 0) { throw 'A release was created without its Linux AppImage.' }
+    $linuxAssets = Join-Path $testRoot 'release/out/linux/1.2.3+4'
+    New-Item -ItemType Directory -Path $linuxAssets -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $linuxAssets 'icarus-x86_64.AppImage') -Value 'Linux AppImage'
+    & (Join-Path $scripts 'publish_installer_release.ps1')
+    $calls = @($global:releaseTestCalls)
+    if ($calls.Count -ne 3 -or
+        $calls[0] -notlike 'release create *--draft' -or
+        $calls[1] -notlike 'release upload *icarus-setup.exe *icarus-x86_64.AppImage *' -or
+        $calls[2] -notlike 'release edit *--draft=false*') {
+        throw "Unexpected release calls: $($calls -join ' | ')"
+    }
+    Remove-Item Function:gh
+    Remove-Variable releaseTestCalls -Scope Global
+    Write-Host 'Linux release passed: a new release uploads the AppImage with the installer before it goes public, and nothing is created without it.'
     Write-Host 'Release signing tests passed: signed file accepted; missing, empty, nested unsigned DLL, unsigned installer, and direct unsigned publication rejected.'
 }
 finally {
