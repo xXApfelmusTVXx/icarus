@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Icarus
+GenericName=Valorant Strategy Planner
+Comment=Plan Valorant strategies and line ups
+Exec=icarus %U
+Icon=xyz.icarus-strats
+Terminal=false
+StartupWMClass=xyz.icarus-strats
+Categories=Game;StrategyGame;
+Keywords=Valorant;strategy;lineup;IGL;coach;
+MimeType=x-scheme-handler/icarus;application/x-icarus-strategy;application/x-valorant-replay;
