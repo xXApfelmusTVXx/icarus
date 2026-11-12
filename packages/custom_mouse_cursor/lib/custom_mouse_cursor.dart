@@ -1968,7 +1968,8 @@ class _CustomMouseCursorPlatformInterface {
       'hotX': hotX,
       'hotY': hotY,
       // ICARUS PATCH: bitmap-pixels per logical point. Read by the macOS
-      // plugin to set the NSImage point size; ignored on Windows/Linux.
+      // plugin to set the NSImage point size and by the Linux plugin to set
+      // the cursor surface's device scale; ignored on Windows.
       'scale': scale,
     });
     if (cursorName == null) {

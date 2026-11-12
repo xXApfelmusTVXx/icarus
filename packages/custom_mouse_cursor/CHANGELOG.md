@@ -11,8 +11,11 @@ Vendored into Icarus with local patches:
 - `exactAsset()` forwards `package`; asset loads honor the caller-supplied
   bundle; DPR updates await platform registration; `registerCursor()` throws a
   descriptive error on native failure and validates `scale`.
-- Linux platform support removed: Icarus ships Windows and macOS only.
-  Restore from upstream if ever needed.
+- Linux plugin rewritten from upstream's: channel arguments are type-checked,
+  decoded images are released, re-registering a name replaces its cursor,
+  unknown methods answer not-implemented, and cursors render at the real
+  devicePixelRatio. (It was dropped for a while because upstream's had none
+  of that.)
 
 
 # Changelog for custom_mouse_cursor package

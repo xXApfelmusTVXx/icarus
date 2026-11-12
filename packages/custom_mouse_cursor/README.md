@@ -21,15 +21,18 @@ final tiny size, which looks jagged on all platforms. Our patches (marked
    honor the caller-supplied bundle, DPR updates await platform registration,
    and `registerCursor()` validates `scale` and throws a descriptive error on
    native failure.
-4. Linux platform support removed — Icarus ships Windows and macOS only.
-   Restore from upstream if ever needed.
+4. The Linux plugin is rewritten: channel arguments are type-checked,
+   decoded images are released, a cursor registered again under the same
+   name replaces the old one, unknown methods answer not-implemented, and
+   cursors render at the real devicePixelRatio through the cursor surface's
+   device scale.
 
 Remove this vendored copy if upstream ever ships equivalent fixes.
 
 ## Supported platforms
 
 Windows (via Flutter's built-in engine cursor channel), macOS (via the
-bundled Swift plugin), and web.
+bundled Swift plugin), Linux (via the bundled GTK plugin), and web.
 
 ## Usage
 
