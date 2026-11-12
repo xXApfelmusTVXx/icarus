@@ -62,11 +62,26 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
+// Whether this launch names its own Hive store (--hive-store-dir).
+static gboolean uses_own_hive_store(gchar** arguments) {
+  for (gchar** argument = arguments; *argument != nullptr; argument++) {
+    if (g_str_has_prefix(*argument, "--hive-store-dir")) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
 // Implements GApplication::local_command_line.
 static gboolean my_application_local_command_line(GApplication* application, gchar*** arguments, int* exit_status) {
   MyApplication* self = MY_APPLICATION(application);
-  // Strip out the first argument as it is the binary name.
-  self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
+
+  // A launch with its own Hive store runs beside the others, as it does on
+  // Windows, where the store picks the single-instance id.
+  if (uses_own_hive_store(*arguments + 1)) {
+    g_application_set_flags(application, static_cast<GApplicationFlags>(
+        g_application_get_flags(application) | G_APPLICATION_NON_UNIQUE));
+  }
 
   g_autoptr(GError) error = nullptr;
   if (!g_application_register(application, nullptr, &error)) {
@@ -75,6 +90,15 @@ static gboolean my_application_local_command_line(GApplication* application, gch
      return TRUE;
   }
 
+  // Icarus is already open. Returning FALSE lets GApplication send this
+  // launch's arguments (files to open, icarus: links) to the open instance,
+  // where they arrive as its command-line signal, and then exit.
+  if (g_application_get_is_remote(application)) {
+    return FALSE;
+  }
+
+  // Strip out the first argument as it is the binary name.
+  self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
   g_application_activate(application);
   *exit_status = 0;
 
@@ -119,6 +143,6 @@ static void my_application_init(MyApplication* self) {}
 MyApplication* my_application_new() {
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID,
-                                     "flags", G_APPLICATION_NON_UNIQUE,
+                                     "flags", G_APPLICATION_HANDLES_COMMAND_LINE,
                                      nullptr));
 }
