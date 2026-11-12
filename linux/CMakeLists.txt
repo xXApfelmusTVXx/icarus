@@ -7,7 +7,10 @@ project(runner LANGUAGES CXX)
 set(BINARY_NAME "icarus")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "com.example.icarus")
+# The same as the macOS bundle identifier. It names the folder the library
+# lives in (path_provider's ~/.local/share/<id>), so it never changes once a
+# Linux build has shipped.
+set(APPLICATION_ID "xyz.icarus-strats")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

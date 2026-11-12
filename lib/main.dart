@@ -110,6 +110,14 @@ Future<void> _initializeDeepLinkHandling() async {
     return;
   }
 
+  if (defaultTargetPlatform == TargetPlatform.linux) {
+    // On Linux an icarus: link comes in as a launch argument, from this
+    // launch or a second one (ensureIcarusSingleInstance). app_links_linux
+    // would listen on the same GApplication channel, which takes only one
+    // listener, and pass on only a launch's first argument.
+    return;
+  }
+
   try {
     final initialLink = await _appLinks.getInitialLink();
     if (initialLink != null) {
