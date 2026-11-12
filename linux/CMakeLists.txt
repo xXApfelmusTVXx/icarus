@@ -78,6 +78,8 @@ target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 add_dependencies(${BINARY_NAME} flutter_assemble)
 add_subdirectory("../native/height" "native/height")
 add_dependencies(${BINARY_NAME} icarus_height)
+add_subdirectory("../native/replay" "native/replay")
+add_dependencies(${BINARY_NAME} icarus_replay)
 
 # Only the install-generated bundle's copy of the executable will launch
 # correctly, since the resources must in the right relative locations. To avoid
@@ -111,6 +113,12 @@ set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 install(TARGETS icarus_height LIBRARY DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
+install(FILES "${ICARUS_REPLAY_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
+install(FILES "${ICARUS_REPLAY_NOTICE}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  RENAME icarus_replay_NOTICE.md COMPONENT Runtime)
+install(FILES "${ICARUS_REPLAY_LICENSE}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  RENAME icarus_replay_LICENSE.txt COMPONENT Runtime)
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
