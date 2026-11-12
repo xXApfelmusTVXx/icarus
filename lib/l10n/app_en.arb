@@ -902,6 +902,10 @@
   "@exportVideoEncoderNotFound": {
     "description": "Toast on desktop when the bundled video encoder is missing."
   },
+  "exportVideoNeedsFfmpeg": "Video export needs FFmpeg. Install it with your package manager (for example: sudo apt install ffmpeg), then export again.",
+  "@exportVideoNeedsFfmpeg": {
+    "description": "Toast on Linux when no FFmpeg is installed. The Linux build uses the system's FFmpeg instead of a bundled one. Keep the command 'sudo apt install ffmpeg' as it is."
+  },
   "exportVideoSavingChanges": "Saving your changes",
   "@exportVideoSavingChanges": {
     "description": "Progress label while unsaved work is saved before the export starts."

@@ -262,7 +262,13 @@ class _ExportVideoDialogState extends ConsumerState<ExportVideoDialog> {
       final ffmpegBinary = await FfmpegVideoEncoder.resolveBinary();
       if (ffmpegBinary == null) {
         Settings.showToast(
-          message: l10n.exportVideoEncoderNotFound,
+          // Windows bundles FFmpeg, so a missing one means a broken install.
+          // Linux uses the system's: an LGPL FFmpeg there has no H.264
+          // encoder of the OS to lean on, the way Windows uses Media
+          // Foundation (docs/adr/0001, 0004).
+          message: defaultTargetPlatform == TargetPlatform.linux
+              ? l10n.exportVideoNeedsFfmpeg
+              : l10n.exportVideoEncoderNotFound,
           backgroundColor: Settings.tacticalVioletTheme.destructive,
         );
         return;
