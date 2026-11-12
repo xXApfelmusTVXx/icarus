@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  custom_mouse_cursor
   desktop_drop
   desktop_updater
   gtk
