@@ -198,6 +198,7 @@
   "exportVideoDefaultFileName": "新视频",
   "exportVideoBrowserUnsupported": "此浏览器无法导出视频。请使用最新版 Chrome 或 Edge，或使用桌面应用。",
   "exportVideoEncoderNotFound": "未找到视频编码器。重新安装 Icarus 应可解决。",
+  "exportVideoNeedsFfmpeg": "导出视频需要 FFmpeg。请用包管理器安装（例如：sudo apt install ffmpeg），然后重新导出。",
   "exportVideoSavingChanges": "正在保存你的更改",
   "exportVideoPreparing": "正在准备",
   "exportVideoExported": "视频已导出。",

@@ -198,6 +198,7 @@
   "exportVideoDefaultFileName": "新しい動画",
   "exportVideoBrowserUnsupported": "このブラウザーでは動画を書き出せません。最新のChromeかEdge、またはデスクトップアプリをお使いください。",
   "exportVideoEncoderNotFound": "動画エンコーダーが見つかりません。Icarusを再インストールすると直ります。",
+  "exportVideoNeedsFfmpeg": "動画の書き出しにはFFmpegが必要です。パッケージマネージャーでインストールしてから（例: sudo apt install ffmpeg）、もう一度書き出してください。",
   "exportVideoSavingChanges": "変更を保存中",
   "exportVideoPreparing": "準備中",
   "exportVideoExported": "動画を書き出しました。",
