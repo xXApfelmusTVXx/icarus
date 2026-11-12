@@ -56,6 +56,17 @@ class UpdateChecker {
     message: 'The web build updates itself on reload.',
   );
 
+  /// Linux builds have no update feed yet, so they never fetch the desktop
+  /// version file: it predates them, and its update button opens the
+  /// Microsoft Store. What a Linux build checks waits on how Linux builds
+  /// are released.
+  static const _linuxResult = UpdateCheckResult(
+    isSupported: false,
+    isUpdateAvailable: false,
+    source: 'linux',
+    message: 'Linux builds have no update feed yet.',
+  );
+
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
     final fetchOverride = fetchVersionInfoOverride;
     if (fetchOverride != null) return fetchOverride();
@@ -77,11 +88,15 @@ class UpdateChecker {
   static Future<UpdateCheckResult> checkForUpdateSignal({
     bool? isWebOverride,
     bool? isWindowsOverride,
+    bool? isLinuxOverride,
   }) async {
     final bool isWeb = isWebOverride ?? kIsWeb;
     if (isWeb) return _webResult;
     final bool isWindows = isWindowsOverride ??
         ((!isWeb && Platform.isWindows) || windowsStoreCheckOverride != null);
+    if (_isLinux(isWindows: isWindows, override: isLinuxOverride)) {
+      return _linuxResult;
+    }
 
     if (isWindows) {
       final windowsResult = await _checkWindowsStoreSignal();
@@ -105,11 +120,15 @@ class UpdateChecker {
   static Future<UpdateCheckResult> checkForWindowsStoreUpdateSignal({
     bool? isWebOverride,
     bool? isWindowsOverride,
+    bool? isLinuxOverride,
   }) async {
     final bool isWeb = isWebOverride ?? kIsWeb;
     if (isWeb) return _webResult;
     final bool isWindows = isWindowsOverride ??
         ((!isWeb && Platform.isWindows) || windowsStoreCheckOverride != null);
+    if (_isLinux(isWindows: isWindows, override: isLinuxOverride)) {
+      return _linuxResult;
+    }
 
     if (!isWindows) {
       return _checkRemoteVersionSignal();
@@ -278,6 +297,11 @@ class UpdateChecker {
       ),
     );
   }
+
+  /// Decided after Windows, so a test standing in for the Store on a Linux
+  /// host still takes the Windows path.
+  static bool _isLinux({required bool isWindows, bool? override}) =>
+      override ?? (!isWindows && Platform.isLinux);
 
   static int? _toInt(dynamic value) {
     if (value is int) return value;

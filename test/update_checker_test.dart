@@ -140,6 +140,7 @@ void main() {
     final result = await UpdateChecker.checkForUpdateSignal(
       isWebOverride: false,
       isWindowsOverride: false,
+      isLinuxOverride: false,
     );
 
     expect(result.source, 'remote_version_file');
@@ -163,6 +164,36 @@ void main() {
 
     expect(fetches, 0);
     for (final result in [update, storeUpdate]) {
+      expect(result.isSupported, isFalse);
+      expect(result.isUpdateAvailable, isFalse);
+    }
+  });
+
+  test('linux never fetches the desktop version file or offers its update',
+      () async {
+    var fetches = 0;
+    UpdateChecker.fetchVersionInfoOverride = () async {
+      fetches += 1;
+      return <String, dynamic>{
+        'current_version': '9.9.9',
+        'current_version_number': '999',
+      };
+    };
+
+    final update = await UpdateChecker.checkForUpdateSignal(
+      isWebOverride: false,
+      isWindowsOverride: false,
+      isLinuxOverride: true,
+    );
+    final storeUpdate = await UpdateChecker.checkForWindowsStoreUpdateSignal(
+      isWebOverride: false,
+      isWindowsOverride: false,
+      isLinuxOverride: true,
+    );
+
+    expect(fetches, 0);
+    for (final result in [update, storeUpdate]) {
+      expect(result.source, 'linux');
       expect(result.isSupported, isFalse);
       expect(result.isUpdateAvailable, isFalse);
     }
