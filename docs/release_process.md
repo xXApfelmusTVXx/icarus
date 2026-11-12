@@ -358,6 +358,7 @@ Use this when you want to publish the Microsoft Store channel.
 
 - Installers are GitHub Release assets because they exceed Git's 100 MiB blob limit. The stable download link follows the latest stable GitHub Release; prereleases use their exact tag.
 - Existing desktop users still update through the same Pages manifest and per-file payload. Moving the installer does not require reinstalling Icarus.
+- Linux builds have no in-app updater. They ask the GitHub Releases API for the newest release on their channel that carries `icarus-x86_64.AppImage`, and the update dialog downloads it (`lib/const/update_checker.dart`). A release without that asset is never offered to Linux.
 - The signed installer is published before the updater manifest. The new payload and manifest are pushed together, preserving earlier payload folders for downloads already in progress.
 - Never reuse a publicly published build number. If publication fails after an updater went live, increment the build number before rebuilding.
 - The `publish_pages` workflow input controls both GitHub Release and Pages publication. With it disabled, all output stays in workflow artifacts.

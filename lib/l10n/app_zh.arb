@@ -1025,6 +1025,7 @@
   "updateMsgNewVersionAvailable": "{appName} {version} 已发布",
   "updateMsgNewVersionLong": "桌面版更新已准备好，需下载 {size} MB 文件。",
   "updateMsgDownload": "下载更新",
+  "updateMsgLinuxDownloadHint": "浏览器会下载新的 AppImage。请允许它作为程序运行，然后启动它，今后用它代替当前这个。你的资料库会保留在原处。",
   "updateMsgRestartToUpdate": "重启以更新",
   "updateMsgLater": "稍后",
   "updateMsgRestartRequiredTitle": "需要重启",

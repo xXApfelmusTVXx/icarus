@@ -1025,6 +1025,7 @@
   "updateMsgNewVersionAvailable": "{appName} {version}が利用可能です",
   "updateMsgNewVersionLong": "デスクトップ版のアップデートの準備ができました。ダウンロードするファイルは{size} MBです。",
   "updateMsgDownload": "アップデートをダウンロード",
+  "updateMsgLinuxDownloadHint": "ブラウザで新しいAppImageがダウンロードされます。プログラムとして実行できるように設定して起動し、今後はこちらの代わりにそれを使ってください。ライブラリはそのまま残ります。",
   "updateMsgRestartToUpdate": "再起動してアップデート",
   "updateMsgLater": "後で",
   "updateMsgRestartRequiredTitle": "再起動が必要です",
