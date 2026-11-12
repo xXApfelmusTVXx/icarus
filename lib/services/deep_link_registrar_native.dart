@@ -1,13 +1,33 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
 import 'package:icarus/config/drive_build.dart';
+import 'package:icarus/services/linux_desktop_handler.dart';
 import 'package:win32_registry/win32_registry.dart';
 
 Future<void> registerDeepLinkProtocol(String scheme) async {
   // A driver build is a copy run from a scratch folder; icarus: links stay
   // with the installed app.
-  if (!Platform.isWindows || driveBuild) {
+  if (driveBuild) {
+    return;
+  }
+  if (Platform.isLinux) {
+    // Not awaited: it starts the desktop's database tools, and startup has
+    // no reason to wait for them.
+    unawaited(
+      registerLinuxDesktopHandler(scheme: scheme).catchError(
+        (Object error, StackTrace stackTrace) => log(
+          'Linux desktop registration failed: $error',
+          name: 'deep_link_registrar',
+          error: error,
+          stackTrace: stackTrace,
+        ),
+      ),
+    );
+    return;
+  }
+  if (!Platform.isWindows) {
     return;
   }
 

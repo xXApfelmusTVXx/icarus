@@ -67,6 +67,7 @@ import 'package:icarus/strategy/strategy_import_export.dart';
 import 'package:icarus/strategy/strategy_migrator.dart';
 import 'package:icarus/startup/cloud_bootstrap.dart';
 import 'package:icarus/startup/hive_store_launch.dart';
+import 'package:icarus/startup/launch_argument.dart';
 import 'package:icarus/strategy_view.dart';
 import 'package:icarus/widgets/folder_navigator.dart';
 import 'package:icarus/widgets/ica_drop_target.dart';
@@ -515,9 +516,10 @@ class _MyAppState extends ConsumerState<MyApp> {
   /// Replays in one launch open together, so several land on the Replays
   /// tab instead of each opening the viewer in turn.
   void _handleIncomingArguments(
-    List<String> arguments, {
+    List<String> launchArguments, {
     required String source,
   }) {
+    final arguments = launchArguments.map(launchArgumentPath).toList();
     final replays = arguments.where(isReplayPath).toList();
     if (replays.isNotEmpty) unawaited(openReplays(ref, replays));
     for (final argument in arguments) {
